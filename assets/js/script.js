@@ -116,47 +116,40 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
 
-// هذا الملف يجب أن يتم تضمينه في صفحات موقعك
+// كود تسجيل Service Worker المحسن (أضف هذا في script.js أو في ملف منفصل)
 
 // التحقق من دعم المتصفح للـ Service Worker
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/service-worker.js')
+    navigator.serviceWorker.register('/service-worker.js', { scope: '/' })
       .then(registration => {
         console.log('Service Worker تم تسجيله بنجاح:', registration.scope);
+        
+        // التحقق من وجود تحديثات
+        registration.addEventListener('updatefound', () => {
+          const newWorker = registration.installing;
+          console.log('يتم تثبيت service worker جديد...');
+          
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              console.log('Service Worker جديد مثبت ومتاح للاستخدام.');
+              // يمكنك هنا إظهار إشعار للمستخدم بتحديث الصفحة
+            }
+          });
+        });
       })
       .catch(error => {
-        console.log('فشل في تسجيل Service Worker:', error);
+        console.error('فشل في تسجيل Service Worker:', error);
       });
+    
+    // التعامل مع تحديثات Service Worker
+    let refreshing = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!refreshing) {
+        refreshing = true;
+        console.log('تم تحديث Service Worker، جاري إعادة تحميل الصفحة...');
+        window.location.reload();
+      }
+    });
   });
 }
-
-// إضافة مستمع لحدث تثبيت التطبيق
-window.addEventListener('beforeinstallprompt', (e) => {
-  // احفظ الحدث حتى يمكن تشغيله لاحقاً
-  let deferredPrompt = e;
-  
-  // يمكنك هنا إظهار زر "تثبيت التطبيق" إذا كنت ترغب بذلك
-  // مثال:
-  /*
-  const installButton = document.getElementById('install-button');
-  if (installButton) {
-    installButton.style.display = 'block';
-    
-    installButton.addEventListener('click', () => {
-      // إظهار مربع حوار التثبيت
-      deferredPrompt.prompt();
-      
-      // انتظار إجابة المستخدم
-      deferredPrompt.userChoice.then((choiceResult) => {
-        if (choiceResult.outcome === 'accepted') {
-          console.log('تم قبول تثبيت التطبيق');
-        } else {
-          console.log('تم رفض تثبيت التطبيق');
-        }
-        deferredPrompt = null;
-      });
-    });
-  }
-  */
-});
